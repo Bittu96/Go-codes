@@ -185,30 +185,37 @@ func sendRecordToQueue(message string) {
 type Task struct {
 }
 
+type Pool struct {
+}
+
 func main() {
 	var (
 		wg               = &sync.WaitGroup{}
 		mux              = &sync.Mutex{}
 		numberOfTasks    = 1000
 		numberOfWorkers  = 50
-		numberOfManagers = 10
+		numberOfManagers = 3
 		numberOfAuditors = 3
 		tasksChnl        = make(chan int, numberOfTasks)
 		tasksRecordChnl  = make(chan string, numberOfTasks)
 		wSpan            time.Duration
 	)
 
-	wg.Add(numberOfWorkers + numberOfManagers + numberOfAuditors)
-
+	wg.Add(numberOfManagers)
 	for id := 1; id <= numberOfManagers; id++ {
 		go manager(wg, mux, id, tasksChnl, &numberOfTasks)
 	}
+
+	wg.Add(numberOfWorkers)
 	for id := 1; id <= numberOfWorkers; id++ {
 		go worker(wg, mux, id, tasksChnl, tasksRecordChnl, &wSpan)
 	}
+
+	wg.Add(numberOfAuditors)
 	for id := 1; id <= numberOfAuditors; id++ {
 		go auditor(wg, mux, id, tasksChnl, tasksRecordChnl)
 	}
+
 	//for i := 1; i <= numberOfTasks; i++ {
 	//	//time.Sleep(10 * time.Millisecond)
 	//	tasksChnl <- i
